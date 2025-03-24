@@ -3,6 +3,7 @@ package main
 import (
 	"crypto/tls"
 	"crypto/x509"
+	"flag"
 	"fmt"
 	"io/ioutil"
 	"log"
@@ -41,10 +42,17 @@ func secureHandler(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(w, "Hello, Secure World! Authenticated CN: %s", clientCert.Subject.CommonName)
 }
 
+var (
+	certsDir = flag.String("certs", ".", "certificate directory")
+	addr     = flag.String("addr", ":8443", "server address")
+)
+
 func main() {
+	flag.Parse()
+
 	// Define test certs
 	certConfigs := []string{
-	     "./client.pem",
+		*certsDir + "/client.pem",
 	}
 
 	tlsConfig, err := LoadClientCerts(certConfigs)
@@ -53,13 +61,13 @@ func main() {
 	}
 
 	server := &http.Server{
-		Addr:      ":8443",
+		Addr:      *addr,
 		TLSConfig: tlsConfig,
 		Handler:   http.HandlerFunc(secureHandler),
 	}
 
-	log.Println("Starting mTLS API on https://localhost:8443")
-	err = server.ListenAndServeTLS("server.crt", "server.key")
+	log.Println("Starting mTLS API on https://" + *addr)
+	err = server.ListenAndServeTLS(*certsDir+"/server.crt", *certsDir+"/server.key")
 	if err != nil {
 		log.Fatalf("Server failed: %s", err)
 	}
